@@ -1,5 +1,6 @@
 package pojo;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -27,8 +28,12 @@ import org.eclipse.persistence.oxm.annotations.XmlPath;
  */
 @XmlRootElement(name="Party") 
 @XmlAccessorType(XmlAccessType.FIELD)
-public class Party {
+public class Party implements Serializable {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	@XmlPath(".")
 	@XmlJavaTypeAdapter(MapAdapter.class)
    

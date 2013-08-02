@@ -1,9 +1,10 @@
 package pojo;
 
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.glassfish.jersey.servlet.ServletContainer;
+import com.sun.jersey.spi.container.servlet.ServletContainer;
 
 /**
  * 
@@ -19,13 +20,15 @@ import org.glassfish.jersey.servlet.ServletContainer;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-    	Server server = new Server(8111);
+    	Server server = new Server(8112);
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
         server.setHandler(context);
         ServletHolder h = new ServletHolder(new ServletContainer());
+ //       h.setInitParameter("com.sun.jersey.config.property.resourceConfigClass", "com.sun.jersey.api.core.PackagesResourceConfig");
         h.setInitParameter("com.sun.jersey.config.property.packages", "resources");
-        context.addServlet(h, "/*");
+        h.setInitOrder(1);
+        context.addServlet(h, "/rest/*");
         try
         {
             server.start();
