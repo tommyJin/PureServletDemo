@@ -13,6 +13,8 @@ import javax.ws.rs.core.UriInfo;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
+import contextListener.MyAdminServletContextListener;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +40,7 @@ public class AllPartiesResource {
 	
 	String name;
 	
-	public static final Timer allTime = DBConnection.registry.timer(MetricRegistry.name("Timer","all-parties"));
+	public static final Timer allTime = MyAdminServletContextListener.registry.timer(MetricRegistry.name("Timer","all-parties"));
 
 	@GET
 	@Produces({MediaType.APPLICATION_JSON,MediaType.APPLICATION_XML})

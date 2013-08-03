@@ -1,5 +1,7 @@
 package resources;
 	
+import health.TemplateHealthCheck;
+
 import java.net.InetSocketAddress;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -11,6 +13,9 @@ import java.util.HashMap;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.health.HealthCheckRegistry;
+
+import contextListener.MyAdminServletContextListener;
 
 import pojo.Party;
 
@@ -42,10 +47,8 @@ import net.spy.memcached.MemcachedClient;
 		public static final InetSocketAddress isa= new InetSocketAddress("atom1.cisco.com",11211);
 		public static MemcachedClient memcache;
 		public static int getMisses;
-		public static final MetricRegistry registry = new MetricRegistry();
-		
-		public static final Meter misses = registry.meter(MetricRegistry.name("Meter", "get-misses")); 
-		public static final Meter calls = registry.meter(MetricRegistry.name("Meter", "get-calls"));
+		public static final Meter misses = MyAdminServletContextListener.registry.meter(MetricRegistry.name("Meter", "get-misses")); 
+		public static final Meter calls = MyAdminServletContextListener.registry.meter(MetricRegistry.name("Meter", "get-calls"));
 		
 		private DBConnection()
 		{
@@ -163,7 +166,8 @@ import net.spy.memcached.MemcachedClient;
 		 */
 		private void metricsRegistry()
 		{
-			registry.register(MetricRegistry.name("Gauge", "curr_items"), new Gauge<Integer>()
+			MyAdminServletContextListener.Hregistry.register("DB Check", new TemplateHealthCheck());
+			MyAdminServletContextListener.registry.register(MetricRegistry.name("Gauge", "curr_items"), new Gauge<Integer>()
 					{
 						public Integer getValue()
 						{
@@ -171,7 +175,7 @@ import net.spy.memcached.MemcachedClient;
 									get("curr_items"));
 						}
 					});
-			registry.register(MetricRegistry.name("Gauge","cache_hit_rate-gauge"), new Gauge<Double>()
+			MyAdminServletContextListener.registry.register(MetricRegistry.name("Gauge","cache_hit_rate-gauge"), new Gauge<Double>()
 					{
 						public Double getValue()
 						{

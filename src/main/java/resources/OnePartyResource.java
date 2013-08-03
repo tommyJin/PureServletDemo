@@ -11,6 +11,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.sun.jersey.api.NotFoundException;
 
+import contextListener.MyAdminServletContextListener;
+
 
 
 import pojo.Party;
@@ -26,7 +28,7 @@ public class OnePartyResource {
 	String name;
 	
 
-	public static final Timer time = DBConnection.registry.timer(MetricRegistry.name("Timer","one-party"));	
+	public static final Timer time = MyAdminServletContextListener.registry.timer(MetricRegistry.name("Timer","one-party"));	
 	
 	public OnePartyResource(){}
 	
