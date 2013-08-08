@@ -25,7 +25,12 @@ import pojo.PartyPojo;
 import net.spy.memcached.AddrUtil;
 import net.spy.memcached.BinaryConnectionFactory;
 import net.spy.memcached.MemcachedClient;
-	
+	/**
+	 * The big class again. Not worth commenting it all again. Just use dropwizard as reference. I will comment on the
+	 * parts that are different
+	 * @author joayers
+	 *
+	 */
 	public class DBConnection {
 	
 		public static Connection con;
@@ -168,8 +173,8 @@ import net.spy.memcached.MemcachedClient;
 				{
 					e.printStackTrace();
 				}
-				partyName = "Pure"+partyName;
-				memcache.add(partyName, MAX_MEMCACHED_EXPIRATION, string);
+				partyName = "Pure"+partyName; //this makes sure that the memcache keys for PartyAPIMaven don't interfere with the keys from Dropwizard
+				memcache.add(partyName, MAX_MEMCACHED_EXPIRATION, string); //add update key and string to memcache
 				return string;
 			}
 			

@@ -8,10 +8,7 @@ import com.codahale.metrics.servlets.AdminServlet;
 
 /**
  * 
- * @author joayers
- * 
- * TO-DO:
- * --Set up admin server for metrics, Jetty working n
+ * Embeds server
  * 
  * REFERENCE: What I'm using as a guide ---> https://github.com/jesperfj/jax-rs-heroku/tree/jetty
  *
@@ -20,19 +17,19 @@ import com.codahale.metrics.servlets.AdminServlet;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-    	Server server = new Server(8112);
-    	AdminServlet admin = new AdminServlet();
+    	Server server = new Server(8112); //server use port 8112
+    	AdminServlet admin = new AdminServlet(); //servlet with metrics
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
-        context.setContextPath("/");
-        server.setHandler(context);
+        context.setContextPath("/"); //context path set to / means you'll do host:port/(whatever)
+        server.setHandler(context); //add it to server
         ServletHolder h = new ServletHolder(new ServletContainer());
         ServletHolder metrics = new ServletHolder(admin);
-        h.setInitParameter("com.sun.jersey.config.property.packages", "resources");
+        h.setInitParameter("com.sun.jersey.config.property.packages", "resources"); //add your resources to handler
         h.setInitOrder(1);
-        context.addServlet(h, "/rest/*");
-        context.addServlet(metrics, "/metrics/*");
-        context.setAttribute("com.codahale.metrics.servlets.MetricsServlet.registry",contextListener.MyAdminServletContextListener.registry);
-        context.setAttribute("com.codahale.metrics.servlets.HealthCheckServlet.registry", contextListener.MyAdminServletContextListener.Hregistry);
+        context.addServlet(h, "/rest/*"); //path to resources so host:port/rest/...
+        context.addServlet(metrics, "/metrics/*"); //path to metrics host:port/metrics/...
+        context.setAttribute("com.codahale.metrics.servlets.MetricsServlet.registry",contextListener.MyAdminServletContextListener.registry); //register your metrics registry
+        context.setAttribute("com.codahale.metrics.servlets.HealthCheckServlet.registry", contextListener.MyAdminServletContextListener.Hregistry); //register your Healthregistry
 
         try
         {

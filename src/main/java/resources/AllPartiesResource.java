@@ -18,7 +18,9 @@ import contextListener.MyAdminServletContextListener;
 
 @Path("/parties")
 public class AllPartiesResource {
-	
+	/**
+	 * contains resources
+	 */
 	@Context
 	UriInfo url;
 	

@@ -7,7 +7,7 @@ import resources.DBConnection;
 
 public class TemplateHealthCheck extends HealthCheck {
 
-
+	//a healthcheck
 	@Override
 	protected Result check() throws Exception 
 	{
