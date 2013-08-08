@@ -12,22 +12,9 @@ import javax.ws.rs.core.UriInfo;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import contextListener.MyAdminServletContextListener;
-
-
-import java.util.ArrayList;
-import java.util.List;
-
-import pojo.Party;
-
-/**
- * 
- * Class points to different urls, if you want to use the jackson code (currently commented out)
- * on the @Produces line make sure to delete the 
- * MediaType.XML field
- *
- */
 
 @Path("/parties")
 public class AllPartiesResource {
@@ -43,22 +30,16 @@ public class AllPartiesResource {
 	public static final Timer allTime = MyAdminServletContextListener.registry.timer(MetricRegistry.name("Timer","all-parties"));
 
 	@GET
-	@Produces({MediaType.APPLICATION_JSON,MediaType.APPLICATION_XML})
-	public List<Party> getAllParties() throws Exception
+	@Produces(MediaType.APPLICATION_JSON)
+	public String getAllParties() throws Exception
 	{
 		final Timer.Context context=allTime.time(); //start the timer 
-		List<Party> list = new ArrayList<Party>();
+		String string; 
 		DBConnection.readAllData();
-		list.addAll(DBConnection.getPartyCollection().values());
+		ObjectMapper jsonMapper = new ObjectMapper();
+		string=jsonMapper.writeValueAsString(DBConnection.getPartyCollection());
 		context.stop(); //stops timer 
-		return list;
-		
-//		---> code for Jackson
-//		String string; 
-//		DBConnection.readAllData();
-//		ObjectMapper jsonMapper = new ObjectMapper();
-//		string=jsonMapper.writeValueAsString(DBConnection.getPartyCollection());
-//		return string;
+		return string;
 	}
 	
 	@GET

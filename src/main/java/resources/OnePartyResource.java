@@ -9,13 +9,14 @@ import javax.ws.rs.core.UriInfo;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.jersey.api.NotFoundException;
 
 import contextListener.MyAdminServletContextListener;
 
 
 
-import pojo.Party;
+import pojo.PartyPojo;
  
 public class OnePartyResource {
 	
@@ -40,26 +41,17 @@ public class OnePartyResource {
 	}
 	
 	@GET
-	@Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML}) //if you're using the Jackson code delete MediaType.APPLICATION_XML
-	public Party getParty() throws Exception
+	@Produces(MediaType.APPLICATION_JSON) 
+	public String getParty() throws Exception
 	{
-		// ----> code for jackson
-//		Party party = DBConnection.readOneParty(name);
-//		String string;
-//		ObjectMapper jsonMapper = new ObjectMapper();
-//		if(party==null)
-//		{
-//			throw new NotFoundException("No such party exists");
-//		}
-//		string=jsonMapper.writeValueAsString(party.getPartyInfo());
-//		return string;
-		Timer.Context context = time.time(); //start timer
-		Party party = DBConnection.readOneParty(name);
+		Timer.Context context = time.time(); 
+		String party = DBConnection.readOneParty(name);
 		if(party==null)
 		{
 			throw new NotFoundException("No such party exists");
 		}
-		context.stop(); //stop
+		context.stop();
 		return party;
+
 	}
 }

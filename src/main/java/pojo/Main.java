@@ -4,10 +4,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.servlets.AdminServlet;
-
-import contextListener.MyAdminServletContextListener;
 
 /**
  * 

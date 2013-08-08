@@ -8,32 +8,23 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Connection;
 import java.sql.ResultSetMetaData;
-import java.util.HashMap;
+import java.util.HashMap; 
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.health.HealthCheckRegistry;
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.RatioGauge;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import contextListener.MyAdminServletContextListener;
 
-import pojo.Party;
+import pojo.PartyPojo;
 
+import net.spy.memcached.AddrUtil;
+import net.spy.memcached.BinaryConnectionFactory;
 import net.spy.memcached.MemcachedClient;
-
-/**
- * Note that the Metrics will be functional...they just may not be doing what it says they're doing. I have it figured
- * out in the DropWizard code but I was flying through this and I think some old code that doesn't logically make sense
- * got added in (a lot of copy+paste going on), so the measurements they're reading (specifically 
- * on the memcache hit-miss ratio meter/gauge) may be off 
- * 
- * TO-DO:
- * --Get memcache update working, see line 113. Essentially when I call something in the cache, I want to refresh 
- * its expiration but it says I need to use Binary Protocol. Other than that everything should work fine
- * 
- * @author joayers
- *
- */
 	
 	public class DBConnection {
 	
@@ -41,29 +32,35 @@ import net.spy.memcached.MemcachedClient;
 		private static ResultSet resultSet;
 		private static PreparedStatement ps;
 		private static ResultSetMetaData meta;
-		private static HashMap<String,Party> map;
-		public 	static DBConnection connection;
-		public static Party party;
-		public static final InetSocketAddress isa= new InetSocketAddress("atom1.cisco.com",11211);
-		public static MemcachedClient memcache;
-		public static int getMisses;
-		public static final Meter misses = MyAdminServletContextListener.registry.meter(MetricRegistry.name("Meter", "get-misses")); 
-		public static final Meter calls = MyAdminServletContextListener.registry.meter(MetricRegistry.name("Meter", "get-calls"));
-		
+		private static HashMap<String,PartyPojo> map;
+		private	static DBConnection connection;
+		private static PartyPojo party;
+		private static final InetSocketAddress isa= new InetSocketAddress("atom1.cisco.com",11211);
+		private static MemcachedClient memcache;
+		private static Meter hits = MyAdminServletContextListener.registry.meter(MetricRegistry.name("Meter",
+				"memcache-hits")); 
+		private static Meter calls = MyAdminServletContextListener.registry.meter(MetricRegistry.name("Meter",
+				"memcache-calls"));
+		private static Counter evictions = MyAdminServletContextListener.registry.counter(MetricRegistry.name("Counter",
+				"Memcache-Evictions"));
+		private static int getHits,getCalls;
+		private final static int MAX_MEMCACHED_EXPIRATION=2505600;
+
 		private DBConnection()
 		{
 			try 
 			{
-				map = new HashMap<String,Party>();
+				map = new HashMap<String,PartyPojo>();
 				Class.forName("com.mysql.jdbc.Driver");
 				con = DriverManager.getConnection(
 						"jdbc:mysql://atom3.cisco.com:3306/reddb", "redteam",
 						"redteam");		
-				//initialize memcache
 				memcache   = new MemcachedClient(isa); 
 				//this is just a integer variable I was using to make sure my Meters were measuring correctly
-				getMisses = Integer.valueOf(DBConnection.memcache.getStats().get(DBConnection.isa).
-						get("get_misses"));
+				getHits = Integer.valueOf(DBConnection.memcache.getStats().get(DBConnection.isa).
+						get("get_hits"));
+				getCalls = Integer.valueOf(DBConnection.memcache.getStats().get(DBConnection.isa).
+						get("cmd_get"));
 				metricsRegistry();		
 			}
 			catch (Exception e)
@@ -88,7 +85,7 @@ import net.spy.memcached.MemcachedClient;
 				while(resultSet.next())
 				{
 					partyName = resultSet.getString("PARTY_NAME");
-					map.put(partyName, new Party()); //this is the map that keeps track of all parties
+					map.put(partyName, new PartyPojo()); //this is the map that keeps track of all parties
 					party = map.get(partyName);
 					for(int j=1;j<=meta.getColumnCount();j++) //necessary to start at j=1 because of MySQL index starting at 1
 					{
@@ -104,25 +101,38 @@ import net.spy.memcached.MemcachedClient;
 				e.printStackTrace();
 			}
 		}
-		public static Party readOneParty(String partyName) //reads one party
+		public static String readOneParty(String partyName) //reads one party
 		{
-			Party localParty = new Party();
+			String string=null;
+			ObjectMapper jsonMapper = new ObjectMapper();
+			PartyPojo localParty = new PartyPojo();
 			if(connection==null)
 			{
 				connection = new DBConnection();
 			}
+			if(Integer.valueOf(memcache.getStats().get(DBConnection.isa).get("evictions"))!=evictions.getCount())
+			{
+				long numEvictions = evictions.getCount();
+				evictions.dec(numEvictions);
+				evictions.inc(Integer.valueOf(memcache.getStats().get(DBConnection.isa).get("evictions")));
+			}
 			if(memcache.get(partyName)!=null)
 			{
-//				memcache.touch(partyName, 300); //will update to keep object relevant, needs binary protocol
-				calls.mark();
 				if(Integer.valueOf(DBConnection.memcache.getStats().get(DBConnection.isa).
-						get("get_misses"))!=getMisses)
+						get("get_hits"))!=getHits)
 				{
-					getMisses = Integer.valueOf(DBConnection.memcache.getStats().get(DBConnection.isa).
-							get("get_misses"));
-					misses.mark(getMisses);
+					getHits = Integer.valueOf(DBConnection.memcache.getStats().get(DBConnection.isa).
+							get("get_hits"));
+					hits.mark(getHits);
 				}
-				return (Party)memcache.get(partyName);
+				if(getCalls!=Integer.valueOf(DBConnection.memcache.getStats().get(DBConnection.isa).
+						get("cmd_get")))
+				{
+					getCalls=Integer.valueOf(DBConnection.memcache.getStats().get(DBConnection.isa).
+							get("cmd_get"));
+					calls.mark(getCalls);
+				}
+				return (String)memcache.get(partyName);
 			}
 			else{
 				try
@@ -146,12 +156,25 @@ import net.spy.memcached.MemcachedClient;
 				{
 					e.printStackTrace();
 				}
-				memcache.add(partyName, 300, localParty);
-				return localParty;
+				try {
+					string=jsonMapper.writeValueAsString(localParty.getPartyInfo());
+				
+				} 
+				catch (JsonProcessingException e) 
+				{
+					e.printStackTrace();
+				} 
+				catch (Exception e) 
+				{
+					e.printStackTrace();
+				}
+				partyName = "Pure"+partyName;
+				memcache.add(partyName, MAX_MEMCACHED_EXPIRATION, string);
+				return string;
 			}
 			
 		}
-		public static HashMap<String,Party> getPartyCollection()
+		public static HashMap<String,PartyPojo> getPartyCollection()
 		{
 			return map;
 		}
@@ -186,5 +209,21 @@ import net.spy.memcached.MemcachedClient;
 								return get_hits/(get_misses+get_hits);
 						}
 					});
+			MyAdminServletContextListener.registry.register("CacheHitPercentage", new CacheHitMissRatio(hits,calls));
+		}
+		public class CacheHitMissRatio extends RatioGauge
+		{
+			Meter hits, calls;
+			public CacheHitMissRatio(Meter hits, Meter calls)
+			{
+				this.hits=hits;
+				this.calls=calls;
+				
+			}
+			@Override
+			protected Ratio getRatio() {
+				return Ratio.of(hits.getCount(), calls.getCount());
+			}
+			
 		}
 	}
